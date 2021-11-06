@@ -4,7 +4,6 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "build": "CI= npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
