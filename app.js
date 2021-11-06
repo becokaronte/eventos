@@ -1,5 +1,7 @@
 const express = require("express");
 const app = express();
+const HOSTNAME = "localhost:";
+const SERVER_PORT = "3000";
 
 const fs = require("fs");
 const cookieParser = require("cookie-parser");
@@ -163,7 +165,7 @@ app.post("/register-user-event", async (req, res) => {
             "joinDate": new Date().getTime(),
             "used": false,
             "checkDate": "",
-            "qrcode": `http://eventosbittencourt.netlify.app/check-qrcode/${session.username}/${eventsDB[eventIndex].id}`
+            "qrcode": `http://${HOSTNAME}${SERVER_PORT}/check-qrcode/${session.username}/${eventsDB[eventIndex].id}`
           });
       }
       saveFile(EVENTS_DIR, eventsDB).then((result) => res.send("OK"));
@@ -320,37 +322,42 @@ app.post("/check-event", (req, res) => {
       })
     }
   });
+});
 
-  app.get("/check-qrcode/:username/:eventId", (req, res) => {
-    const {eventId} = req.params;
-    const {username} = req.params;
+app.get("/check-qrcode/:username/:eventId", (req, res) => {
+  const {eventId} = req.params;
+  const {username} = req.params;
 
-    readFile(EVENTS_DIR)
-    .then(async (eventsDB) => {
-      const eventIndex = eventsDB.findIndex(
-        (element) => element.id == eventId);
-      const userIndex = eventsDB[eventIndex].users.findIndex(
-        (element) => element.username == username);
-      if (eventsDB[eventIndex].users[userIndex].used === false) {
-        eventsDB[eventIndex].users[userIndex].checkDate = new Date().getTime();
-        eventsDB[eventIndex].users[userIndex].used = true;
-        eventsDB[eventIndex].users[userIndex].qrcode = "";
-        saveFile(EVENTS_DIR, eventsDB).then((result) => {
-            res.send(`
-            <h1>${username}, sua participação no evento ${eventsDB[eventIndex].title} foi confirmada.</h1>
-            <h2>Descrição:</h2>
-            <p>${eventsDB[eventIndex].description}</p>
-            <h2>Data do evento:</h2>
-            <p>${eventsDB[eventIndex].date}</p>
-            <h2>Horário de início:</h2>
-            <p>${eventsDB[eventIndex].time} h</p>
-            <h2>Endereço:</h2>
-            <p>${eventsDB[eventIndex].location}</p>
-          `);
-        });
-      } else {
-        res.status(403).json({"message": "Houve um erro na verificação dos dados."})
-      };
-    }); 
-  });
+  readFile(EVENTS_DIR)
+  .then(async (eventsDB) => {
+    const eventIndex = eventsDB.findIndex(
+      (element) => element.id == eventId);
+    const userIndex = eventsDB[eventIndex].users.findIndex(
+      (element) => element.username == username);
+    if (eventsDB[eventIndex].users[userIndex].used === false) {
+      eventsDB[eventIndex].users[userIndex].checkDate = new Date().getTime();
+      eventsDB[eventIndex].users[userIndex].used = true;
+      eventsDB[eventIndex].users[userIndex].qrcode = "";
+      saveFile(EVENTS_DIR, eventsDB).then((result) => {
+          res.send(`
+          <h1>${username}, sua participação no evento ${eventsDB[eventIndex].title} foi confirmada.</h1>
+          <h2>Descrição:</h2>
+          <p>${eventsDB[eventIndex].description}</p>
+          <h2>Data do evento:</h2>
+          <p>${eventsDB[eventIndex].date}</p>
+          <h2>Horário de início:</h2>
+          <p>${eventsDB[eventIndex].time} h</p>
+          <h2>Endereço:</h2>
+          <p>${eventsDB[eventIndex].location}</p>
+        `);
+      });
+    } else {
+      res.status(403).json({"message": "Houve um erro na verificação dos dados."})
+    };
+  }); 
+});
+
+
+app.listen(SERVER_PORT, () => {
+  console.log(`Server running at http://${HOSTNAME}${SERVER_PORT}/`);
 });
