@@ -53,7 +53,7 @@ $(document).ready(() => {
             success: function(data) {
               $("#actual-event").html(data.htmlText);
               if (data.exists === true && data.used === false) {
-                console.log("data.qrcode: ", data.qrcode);
+                console.log("Clique aqui para acessar o link do QR Code: ", data.qrcode);
                 let qr = qrcode(4, "L");
                 qr.addData(data.qrcode);
                 qr.make();

@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const HOSTNAME = "localhost:";
 const SERVER_PORT = "3000";
-
+const crypto = require("crypto");
 const fs = require("fs");
 const cookieParser = require("cookie-parser");
 const bcrypt = require("bcrypt");
@@ -153,19 +153,20 @@ app.post("/register-user-event", async (req, res) => {
           (element) => element.id == event.id
         );
 
-        /*
-        const saltRounds = 13;
-        const salt = await bcrypt.genSalt(saltRounds);
-        const qrcodeHash = await bcrypt.hash(session.username+eventsDB[eventIndex].id, salt);
-        */
+        
+        const qrcodeHash = crypto.createHmac("sha1", session.username)
+        .update(eventsDB[eventIndex].id)
+        .digest("hex");
+        console.log("qrcodeHash: ", qrcodeHash);
 
           if(!eventsDB[eventIndex].users.some(element => element.username === session.username)){
           eventsDB[eventIndex].users.push({
             "username": session.username,
-            "joinDate": new Date().getTime(),
+            "createDate": new Date().getTime(),
             "used": false,
             "checkDate": "",
-            "qrcode": `http://${HOSTNAME}${SERVER_PORT}/check-qrcode/${session.username}/${eventsDB[eventIndex].id}`
+            "qrcodeHash": qrcodeHash.substring(0, 10),
+            "qrcode": `http://${HOSTNAME}${SERVER_PORT}/check-qrcode/${session.username}/${eventsDB[eventIndex].id}/${qrcodeHash.substring(0, 10)}`
           });
       }
       saveFile(EVENTS_DIR, eventsDB).then((result) => res.send("OK"));
@@ -187,52 +188,6 @@ app.get("/user", (req, res) => {
       res.status(500).json({ message: err.message });
     });
 });
-
-// ------ FUNCOES UTEIS -------------//
-const validateUser = (user, usersDB) => {
-  let isValid = true;
-  // valida se todos os campos existem
-  isValid = user.username && user.password && user.fullname;
-  // valida se nao existe nenhum username igual já cadastrado
-  isValid = !usersDB.some((element) => element.username == user.username);
-  return isValid;
-};
-
-const validateEvent = (event) => {
-  let isValid = true;
-  console.log("event", event)
-  // verificar se tem todos os campos
-  isValid =
-    event.title &&
-    event.description &&
-    event.date &&
-    event.time &&
-    event.location;
-    console.log("isValid", isValid)
-    return isValid;
-};
-
-const readFile = (fileName) => {
-  return new Promise((resolve, reject) => {
-    fs.readFile(fileName, "utf-8", (err, data) => {
-      if (err) reject(err);
-      resolve(JSON.parse(data));
-    });
-  });
-};
-
-const saveFile = (fileName, data) => {
-  return new Promise((resolve, reject) => {
-    const dataText = JSON.stringify(data);
-    fs.writeFile(fileName, dataText, (err) => {
-      if (err) {
-        console.log(err);
-        reject(err);
-      }
-      resolve("JSON salvo");
-    });
-  });
-};
 
 app.get("/log-out", (req, res) => {
   const cookieReference = req.cookies.session_id;
@@ -324,9 +279,10 @@ app.post("/check-event", (req, res) => {
   });
 });
 
-app.get("/check-qrcode/:username/:eventId", (req, res) => {
+app.get("/check-qrcode/:username/:eventId/:qrcodeHash", (req, res) => {
   const {eventId} = req.params;
   const {username} = req.params;
+  const {qrcodeHash} = req.params;
 
   readFile(EVENTS_DIR)
   .then(async (eventsDB) => {
@@ -334,10 +290,14 @@ app.get("/check-qrcode/:username/:eventId", (req, res) => {
       (element) => element.id == eventId);
     const userIndex = eventsDB[eventIndex].users.findIndex(
       (element) => element.username == username);
-    if (eventsDB[eventIndex].users[userIndex].used === false) {
+    if (
+      eventsDB[eventIndex].users[userIndex].used === false &&
+      eventsDB[eventIndex].users[userIndex].qrcodeHash == qrcodeHash
+    ) {
       eventsDB[eventIndex].users[userIndex].checkDate = new Date().getTime();
       eventsDB[eventIndex].users[userIndex].used = true;
       eventsDB[eventIndex].users[userIndex].qrcode = "";
+      eventsDB[eventIndex].users[userIndex].qrcodeHash = "";
       saveFile(EVENTS_DIR, eventsDB).then((result) => {
           res.send(`
           <h1>${username}, sua participação no evento ${eventsDB[eventIndex].title} foi confirmada.</h1>
@@ -357,6 +317,45 @@ app.get("/check-qrcode/:username/:eventId", (req, res) => {
   }); 
 });
 
+// ------ FUNCOES UTEIS -------------//
+const validateUser = (user, usersDB) => {
+  let isValid = true;
+  isValid = user.username && user.password && user.fullname;
+  isValid = !usersDB.some((element) => element.username == user.username);
+  return isValid;
+};
+
+const validateEvent = (event) => {
+  let isValid = true;
+  isValid =
+    event.title &&
+    event.description &&
+    event.date &&
+    event.time &&
+    event.location;
+    return isValid;
+};
+
+const readFile = (fileName) => {
+  return new Promise((resolve, reject) => {
+    fs.readFile(fileName, "utf-8", (err, data) => {
+      if (err) reject(err);
+      resolve(JSON.parse(data));
+    });
+  });
+};
+
+const saveFile = (fileName, data) => {
+  return new Promise((resolve, reject) => {
+    const dataText = JSON.stringify(data);
+    fs.writeFile(fileName, dataText, (err) => {
+      if (err) {
+        reject(err);
+      }
+      resolve("JSON salvo");
+    });
+  });
+};
 
 app.listen(SERVER_PORT, () => {
   console.log(`Server running at http://${HOSTNAME}${SERVER_PORT}/`);

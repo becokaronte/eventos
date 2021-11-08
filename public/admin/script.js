@@ -1,7 +1,3 @@
-let currentEventId = null;
-const registerInEvent = (id) => {
-  currentEventId = id;
-}
 $(document).ready(() => {
   $.ajax({
     url: "/verify",
@@ -24,23 +20,6 @@ $(document).ready(() => {
         console.log("logged out")
       }        
     });
-  });
-
- $("#confirmarCadastrarNoEvento-button").on("click", function () {
-    $.ajax({
-      url:"/register-user-event",
-      type: "POST",
-      data: {
-        id: currentEventId
-      },
-      success: function (data) {
-          console.log(data)
-        }        
-    });
-  });
-
-  $("#events").on("click", function () {
-    $("#textareaRegisterEvents").css("display", "flex");
   });
 
   $("#event-button").on("click", function () {
@@ -85,10 +64,6 @@ $(document).ready(() => {
 
   $("#home").on("click", function () {
     $("#textareaListUsers").css("display", "none");
-  });
-
-  $("#sair").on("click", function () {
-    $("#textareaRegisterEvents").css("display", "none");
   });
 
   $("#send-events").on("click", function () {
@@ -142,9 +117,9 @@ $(document).ready(() => {
         $("#textareaUser").css("display", "none");
       },
     });
-    $("#fullname").val() = "";
-    $("#username").val() = "";
-    $("#password").val() = "";
+    $("#fullname").val("");
+    $("#username").val("");
+    $("#password").val("");
   });
 
   const loadEvents = () => {
@@ -166,7 +141,6 @@ $(document).ready(() => {
             <span class="content-events">${data[key].date}</span>
             <span class="content-events">${data[key].time} h</span>
             <span class="content-events" >${data[key].location}</span>
-            <button type='button' onClick="registerInEvent('${data[key].id}')" id="cadastrarNoEvento-button">Cadastrar no Evento</button>                                   
           </div>`
         }
         $("#events").html(textReference);
@@ -176,9 +150,3 @@ $(document).ready(() => {
 
   loadEvents();
 });
-/*
-let qr = qrcode(4, "M");
-qr.addData("https://sejaalphaedtech.org.br/");
-qr.make();
-$("#placeHolder").html(qr.createImgTag(5, 8, "Imagem de Q R code"));
-*/
